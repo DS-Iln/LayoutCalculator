@@ -37,6 +37,7 @@ $(function(){
 
     // Object With Data For Further Sending
     let dataObj = {
+        title: '',
         screens: {},
         layoutPrice: 0,
         screensCount: 0,
@@ -197,6 +198,7 @@ $(function(){
         $(totalInput).css('color', 'rgb(84, 84, 84)');
         
         dataObj = {
+            title: '',
             screens: {},
             layoutPrice: 0,
             screensCount: 0,
