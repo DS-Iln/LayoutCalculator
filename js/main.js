@@ -6,14 +6,16 @@ $(function(){
           cloneScreen = $('.screen').clone(), 
           screenDelBtn = $('.screen-btn').last(), 
           cmsCheck = $('.custom-checkbox').last(), 
-          cmsSelect = $('.hidden-cms-variants'),
+          cmsSelectBlock = $('.hidden-cms-variants'),
           calcBtn = $('#start'),
           resetBtn = $('#reset'),
           totalInput = $('input#total'),
           totalCountInput = $('input#total-count'),
           totalCountOtherInput = $('input#total-count-other'),
           totalFullCountInput = $('input#total-full-count'),
-          totalCountRollbackInput = $('input#total-count-rollback');
+          totalCountRollbackInput = $('input#total-count-rollback'),
+          hiddenCmsVariants = $('#cms-other-input').parent(),
+          cmsOtherInput = $('#cms-other-input');
 
     let screensInputs = $('.screen .main-controls__input input'), 
         screens, 
@@ -28,7 +30,8 @@ $(function(){
         input,
         addServices,
         checkbox,
-        addServiceValue;
+        addServiceValue,
+        str;
 
 
 
@@ -52,18 +55,10 @@ $(function(){
         screensInputs = $('.screen .main-controls__input input');
 
         $(screensInputs).each(function(index) {
-            $(screensInputs[index]).change(function() {
+            $(screensInputs[index]).on('input', function() {
                 if (!$.isNumeric(this.value)) {
                     this.value = '';
-                    this.placeholder = 'Введите целое значение больше нуля';
-                }
-                if (!Number.isInteger(Number(this.value))) {
-                    this.value = '';
-                    this.placeholder = 'Введите целое значение больше нуля';
-                }
-                if (parseInt(this.value) === 0 || parseInt(this.value) < 0) {
-                    this.value = '';
-                    this.placeholder = 'Введите целое значение больше нуля';
+                    this.placeholder = 'Введите целое значение';
                 }
 
                 return;
@@ -72,6 +67,16 @@ $(function(){
     };
 
     dataInputs();
+
+    // CMS Input 
+    $(cmsOtherInput).on('input', function() {
+        str = this.value;
+        if ('0123456789'.split('').indexOf(str.slice(-1)) <= -1) {
+            this.value = str.substring(0, str.length - 1);
+        }
+
+        return;
+    });
 
     // Range Input Change
     $(rangeInput).on('input', function() {
@@ -114,9 +119,20 @@ $(function(){
     // CMS Check
     $(cmsCheck).click(function() {
         if ($(cmsCheck).prop('checked')) {
-            $(cmsSelect).prop('style', 'display: ;');
+            $(cmsSelectBlock).prop('style', 'display: ;');
         } else {
-            $(cmsSelect).prop('style', 'display: none;');
+            $(cmsSelectBlock).prop('style', 'display: none;');
+        }
+
+        return;
+    });
+
+    // CMS Select
+    $(cmsSelectBlock).change(function() {
+        if ($(cmsSelectBlock).children('.main-controls__select').children('select')[0].selectedIndex === 2) {
+            $(hiddenCmsVariants).prop('style', 'display: block;');
+        } else {
+            $(hiddenCmsVariants).prop('style', 'display: none;');
         }
 
         return;
@@ -152,7 +168,13 @@ $(function(){
 
         $('.screen-btn').show();
 
-        $('.main-controls.elements').css('background-color', '');
+        $(cmsSelectBlock).prop('style', 'display: none;');
+        $(hiddenCmsVariants).prop('style', 'display: none;');
+        $(cmsOtherInput).prop('disabled', false);
+
+        $('.main-controls__views.element:not(:last-child), .main-controls__views.cms').css('background-color', '');
+
+        $(totalInput).css('color', 'rgb(84, 84, 84)');
         
         dataObj = {
             screens: {},
@@ -173,7 +195,7 @@ $(function(){
 
     // Counting Disable
     function disabling() {
-        inputs = $('input'), selects = $('select');
+        inputs = $('input:not([type="range"])'), selects = $('select');
 
         $(inputs).each(function(index) {
             $(inputs[index]).prop("disabled", true);
@@ -184,7 +206,7 @@ $(function(){
 
         $('.screen-btn').hide();
 
-        $('.main-controls.elements').css('background-color', 'rgba(0, 0, 0, 0.15)');
+        $('.main-controls__views.element:not(:last-child), .main-controls__views.cms').css('background-color', 'rgba(0, 0, 0, 0.10)');
 
         return;
     }
@@ -215,12 +237,18 @@ $(function(){
         return dataObj, arrKeys;
     };
 
-    // Count Screens Number
+    // Count Screens
     function screensNumber() {
         $(dataObj.screens).each(function(key, value) {
             for(key in value) {
-                dataObj.layoutPrice += key * value[key];
                 dataObj.screensCount += value[key];
+                if (key === 'undefined') {
+                    dataObj.layoutPrice = 'Screen type must be selected';
+
+                    return dataObj;
+                } else {
+                    dataObj.layoutPrice += key * value[key];
+                }
             }
         })
 
@@ -229,7 +257,7 @@ $(function(){
     
     // Get & Count Data From Addition Services Checkboxes
     function addServicesCount() {
-        addServices = $('.custom-checkbox');
+        addServices = $('.custom-checkbox:not("#cms-open")');
 
         $(addServices).each(function(index) {
             checkbox = $(addServices)[index];
@@ -249,13 +277,43 @@ $(function(){
 
     // Count Total Price
     function totalCount() {
-        dataObj.totalPrice = dataObj.layoutPrice + dataObj.addServicesPrice;
+        if (typeof dataObj.layoutPrice === 'string') {
+            dataObj.totalPrice = 0;
+        } else {
+            dataObj.totalPrice = dataObj.layoutPrice + dataObj.addServicesPrice;
+        }
+
+        return dataObj;
+    };
+
+    // Count CMS 
+    function cmsCount() {
+        addServices = $('#cms-open');
+        if (dataObj.totalPrice === 0 || !$(addServices).is(':checked') || $(cmsSelectBlock).children('.main-controls__select').children('select')[0].selectedIndex === 0) {
+            return;
+        } else {
+            cmsSelectValue = $(cmsSelectBlock).children('.main-controls__select').children('#cms-select')[0][$(cmsSelectBlock).children('.main-controls__select').children('#cms-select')[0].selectedIndex].value;
+
+            if (cmsSelectValue === 'other') {
+                dataObj.addServicesPrice += Math.round(dataObj.totalPrice * (Number($(cmsOtherInput).val()) / 100));
+            } else {
+                dataObj.addServicesPrice += Math.round(dataObj.totalPrice * (Number(cmsSelectValue) / 100));
+            }
+        }
+
+        return dataObj;
     };
 
     // Count Rollback Price
+    rangeInput.on('input', rollbackCount);
+
     function rollbackCount() {
         if (Number($(rangeInput).val()) !== 0) {
             dataObj.withRollbackPrice = dataObj.totalPrice - Math.round(dataObj.totalPrice * (Number($(rangeInput).val()) / 100));
+            dataOutput();
+        } else {
+            dataObj.withRollbackPrice = 0;
+            dataOutput();
         }
 
         return dataObj;
@@ -269,7 +327,9 @@ $(function(){
         getScreenTypes();
         screensNumber();
         addServicesCount();
-        totalCount()
+        totalCount();
+        cmsCount();
+        totalCount();
         rollbackCount();
         dataOutput();
 
@@ -289,6 +349,9 @@ $(function(){
     // Data Output
     function dataOutput() {
         $(totalInput).prop('value', `${dataObj.layoutPrice}`);
+        if (typeof dataObj.layoutPrice === 'string') {
+            $(totalInput).css('color', 'crimson');
+        }
         $(totalCountInput).prop('value', `${dataObj.screensCount}`);
         $(totalCountOtherInput).prop('value', `${dataObj.addServicesPrice}`);
         $(totalFullCountInput).prop('value', `${dataObj.totalPrice}`);
