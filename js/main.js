@@ -3,8 +3,8 @@ $(function(){
     const rangeInput = $('.main-controls__range input'), 
           rangeValue = $('.range-value'), 
           screenBtn = $('.screen-btn').first(), 
-          cloneScreen = $('.screen').clone(), 
           screenDelBtn = $('.screen-btn').last(), 
+          cloneScreen = $('.screen').clone(), 
           cmsCheck = $('.custom-checkbox').last(), 
           cmsSelectBlock = $('.hidden-cms-variants'),
           calcBtn = $('#start'),
@@ -91,7 +91,13 @@ $(function(){
     $(screenBtn).click(function() {
         cloneScreen.clone().insertAfter($('.screen').last());
         dataInputs();
-        $('.screen')[0].last().remove();
+
+        screens = $('.screen');
+        if ($(screens).length > 1) {
+            $(screenDelBtn).show();
+        } else {
+            $(screenDelBtn).hide();
+        }
 
         return;
     });
@@ -104,16 +110,22 @@ $(function(){
             $(remScreen).last().remove();
 
             dataInputs();
-
-            return;
         }
         if ($(screens)[1] !== undefined) {
             remScreen = $(screens);
             $(remScreen).last().remove();
-            dataInputs();
 
-            return;
+            dataInputs();
         }
+
+        screens = $('.screen');
+        if ($(screens).length > 1) {
+            $(screenDelBtn).show();
+        } else {
+            $(screenDelBtn).hide();
+        }
+
+        return;
     });
 
     // CMS Check
@@ -142,7 +154,15 @@ $(function(){
 
     // Reset Pagedata
     function resetData() {
+        screens = $('.screen');
+
+        if ($(screens).length !== 1) {
+            cloneScreen.clone().insertAfter($(screens).last());
+            $(screens).remove();
+        }
+
         inputs = $('input'), selects = $('select');
+
         $(inputs).each(function(index) {
             input = $(inputs[index]);
             if ($(input).parent().prop('class') !== 'main-controls__input' && $(input).prop('class') !== 'total-input' || $(input).parent().parent().prop('class') === 'main-controls__item screen') {
@@ -154,7 +174,7 @@ $(function(){
             if ($(input).parent().parent().prop('class') !== 'main-controls__item other-items percent' && $(input).parent().parent().prop('class') !== 'main-controls__item other-items number' && $(input).prop('class') !== 'custom-checkbox') {
                 $(input).val('0');
             }
-            if ($(input).parent().parent().prop('class') === 'main-controls__item screen') {
+            if ($(input).parent().parent().prop('class') === 'main-controls__item screen' || $(input).prop('id') === 'cms-other-input') {
                 $(input).val('');
             }
         })
@@ -166,7 +186,7 @@ $(function(){
         $(rangeInput).val(0);
         $(rangeValue).text('0%');
 
-        $('.screen-btn').show();
+        $('.screen-btn').first().show();
 
         $(cmsSelectBlock).prop('style', 'display: none;');
         $(hiddenCmsVariants).prop('style', 'display: none;');
@@ -243,7 +263,7 @@ $(function(){
             for(key in value) {
                 dataObj.screensCount += value[key];
                 if (key === 'undefined') {
-                    dataObj.layoutPrice = 'Screen type must be selected';
+                    dataObj.layoutPrice = 'Screens type must be selected';
 
                     return dataObj;
                 } else {
@@ -257,20 +277,24 @@ $(function(){
     
     // Get & Count Data From Addition Services Checkboxes
     function addServicesCount() {
-        addServices = $('.custom-checkbox:not("#cms-open")');
-
-        $(addServices).each(function(index) {
-            checkbox = $(addServices)[index];
-            if ($(checkbox).is(':checked')) {
-                addServiceValue = Number($(checkbox).parent().parent().children('.main-controls__input').children('input').val());
-
-                if (index === 0 || index === 1) {
-                    dataObj.addServicesPrice += Math.round(dataObj.layoutPrice * (addServiceValue / 100));
-                } else {
-                    dataObj.addServicesPrice += addServiceValue;
+        if (typeof dataObj.layoutPrice === 'string') {
+            dataObj.addServicesPrice = 0;
+        } else {
+            addServices = $('.custom-checkbox:not("#cms-open")');
+    
+            $(addServices).each(function(index) {
+                checkbox = $(addServices)[index];
+                if ($(checkbox).is(':checked')) {
+                    addServiceValue = Number($(checkbox).parent().parent().children('.main-controls__input').children('input').val());
+    
+                    if (index === 0 || index === 1) {
+                        dataObj.addServicesPrice += Math.round(dataObj.layoutPrice * (addServiceValue / 100));
+                    } else {
+                        dataObj.addServicesPrice += addServiceValue;
+                    }
                 }
-            }
-        })
+            })
+        }
 
         return dataObj;
     };
